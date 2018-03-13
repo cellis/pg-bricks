@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "debug": "~2.2.0",
-    "pg": "^7.1",
+    "pg": ">=6 <7",
     "point-free": "0.7.0",
     "sql-bricks-postgres": ">=0.3.0"
   },
