@@ -151,7 +151,7 @@ function instrument(client) {
 
 
 // A Conf object
-function Conf(config, client, pool) {
+function Conf(client, pool, config) {
     if (typeof config === 'string') config = {connectionString: config};
     this._config = config;
     this._pg = pg;
