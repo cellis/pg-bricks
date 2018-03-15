@@ -151,11 +151,18 @@ function instrument(client) {
 
 
 // A Conf object
-function Conf(config, _pg) {
+function Conf(config, client, pool) {
     if (typeof config === 'string') config = {connectionString: config};
     this._config = config;
-    this._pg = _pg || pg;
-    this._pool = new this._pg.Pool(config);
+    this._pg = pg;
+    
+    // can now have client or pool, not both
+    if (client) {
+        instrument(client);
+        this._client = client;
+    } else {
+        this._pool = pool || new pg.Pool(config);
+    }
 }
 
 Conf.prototype = {
@@ -170,22 +177,30 @@ Conf.prototype = {
         var response = promisify(callback);
         var func = callback ? func : callbackify(func);
 
-        this._pool.connect(function(err, client, done) {
-            if (err) return response.callback(err);
-
-            instrument(client);
-
-            func(client, function () {
+        if (this._client) {
+            func(this._client, function () {
                 done();
                 response.callback.apply(null, arguments);
             })
-        });
+        } else {
+            this._pool.connect(function(err, client, done) {
+                if (err) return response.callback(err);
+    
+                instrument(client);
+    
+                func(client, function () {
+                    done();
+                    response.callback.apply(null, arguments);
+                })
+            });
+        }
 
         return response.result;
     },
 
     query: function (query, params, callback) {
-        return this._pool.query(query, params, callback)
+        var instance = this._client || this._pool;
+        return instance.query(query, params, callback)
     },
 
     transaction: function (func, callback) {
@@ -221,12 +236,15 @@ Conf.prototype = {
     },
 
     end: function (callback) {
-        return this._pool.end(callback);
+        if(this._pool) {
+            this._pool.end(callback);
+        } else {
+            this._client.release();
+        }
     }
 }
 // Add statement constructors to Conf object
 instrument(Conf.prototype);
-
 
 // Exports
 exports.sql = sql;
