@@ -179,7 +179,6 @@ Conf.prototype = {
 
         if (this._client) {
             func(this._client, function () {
-                done();
                 response.callback.apply(null, arguments);
             })
         } else {
